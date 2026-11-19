@@ -7,7 +7,7 @@
 # Stage 1 (build) has the full toolchain and dev dependencies.
 # Stage 2 (runtime) only gets compiled JS + production node_modules.
 
-ARG NODE_IMAGE=node:22-alpine
+ARG NODE_IMAGE=node:24-alpine
 
 # ---------------------------------------------------------------- build ----
 FROM ${NODE_IMAGE} AS build
