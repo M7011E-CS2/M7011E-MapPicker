@@ -12,7 +12,3 @@ env:
 ingress:
   enabled: true
   path: /api/users
-  tls:
-    enabled: true
-    clusterIssuer: "" # empty = no cert-manager annotation on the Ingress
-    secretName: cs2-tls # every service uses the shared certificate

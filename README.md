@@ -186,7 +186,6 @@ rsync -a --exclude node_modules --exclude dist --exclude coverage \
 Then rename it:
 
 - `apps/group-service/package.json` → `"name": "group-service"`
-- `apps/group-service/src/app.module.ts` → `serviceId: 'group-service'`
 - Delete the user-service–specific code you do not need, and rewrite
   `apps/group-service/README.md`.
 
@@ -231,7 +230,7 @@ Example values file (keep it **free of blank lines** — CI rewrites it with `yq
 ```yaml
 image:
   repository: ghcr.io/m7011e-cs2/group-service
-  tag: ""
+  tag: "initial"             # placeholder: the chart requires a tag; CI overwrites it on the first build
 imagePullSecrets:
   - name: ghcr-pull
 env:
@@ -241,11 +240,10 @@ secretEnv:
 ingress:
   enabled: true
   path: /api/groups
-  tls:
-    enabled: true
-    clusterIssuer: ""
-    secretName: cs2-tls      # shared certificate, do not create a new one
 ```
+
+TLS needs no settings: the chart defaults already use the shared `cs2-tls`
+certificate from `deploy/infra/certificate.yaml`.
 
 ### 4. Create its secrets in the cluster
 

@@ -33,10 +33,13 @@ ingress:
   # Traefik removes the path prefix before forwarding, so the app still
   # serves its routes at "/" (e.g. /api/users/health -> /health).
   stripPrefix: true
+  # All services share ONE certificate for the same host. It is created by
+  # deploy/infra/certificate.yaml (applied by the "infra" Argo CD app), not
+  # per Ingress: Let's Encrypt allows only 5 duplicate certificates per week.
   tls:
     enabled: true
-    clusterIssuer: letsencrypt-prod   # cert-manager ClusterIssuer
-    secretName: ""                    # defaults to <release>-tls
+    clusterIssuer: ""                 # empty = no cert-manager annotation; the shared Certificate requests it
+    secretName: cs2-tls               # secret written by deploy/infra/certificate.yaml
 
 probes:
   path: /health
