@@ -9,11 +9,10 @@ imagePullSecrets:
   - name: ghcr-pull
 env:
   NODE_ENV: production
-secretEnv:
-  DATABASE_URL:
-    secretName: user-service-db
-    key: DATABASE_URL
 ingress:
   enabled: true
-  host: mappick.example.com # TODO: replace with the real domain
   path: /api/users
+  tls:
+    enabled: true
+    clusterIssuer: ""        # empty = no cert-manager annotation on the Ingress
+    secretName: cs2-tls      # every service uses the shared certificate
