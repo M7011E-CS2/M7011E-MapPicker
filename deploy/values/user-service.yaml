@@ -3,7 +3,7 @@
 # (No blank lines: yq rewrites the file on each bump and would remove them.)
 image:
   repository: ghcr.io/m7011e-cs2/user-service
-  tag: "9cf026db62753b6227f39a19c4c8b940b6701dd6"
+  tag: "44d6f11bcd3b07e05e7e6c788d01cd85bfb7ace9"
 # Pull credentials for GHCR (remove if the package is made public)
 imagePullSecrets:
   - name: ghcr-pull
