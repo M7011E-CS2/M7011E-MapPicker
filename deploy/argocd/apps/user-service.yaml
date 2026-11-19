@@ -1,0 +1,36 @@
+# Argo CD Application for user-service.
+# Renders the generic chart with deploy/values/user-service.yaml into namespace mappick.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: user-service
+  namespace: argocd
+  # When this Application is deleted, also delete the Kubernetes resources it created.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/M7011E-CS2/M7011E-MapPicker.git
+    targetRevision: main
+    path: deploy/charts/nest-service
+    helm:
+      releaseName: user-service
+      # Relative to the chart path above
+      valueFiles:
+        - ../../values/user-service.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mappick
+  syncPolicy:
+    automated:
+      prune: true      # delete resources that were removed from git
+      selfHeal: true   # undo manual changes made in the cluster
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

@@ -1,0 +1,25 @@
+# App-of-apps: the ONLY manifest applied by hand
+#   kubectl apply -n argocd -f deploy/argocd/root-app.yaml
+# It watches deploy/argocd/apps/ and creates one Argo CD Application per file.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mappick-root
+  namespace: argocd
+  # No finalizer on purpose: deleting the root app must not cascade-delete
+  # every service in the cluster.
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/M7011E-CS2/M7011E-MapPicker.git
+    targetRevision: main
+    path: deploy/argocd/apps
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd   # child Application objects live in the argocd namespace
+  syncPolicy:
+    automated:
+      prune: true       # removing a file in apps/ removes that service
+      selfHeal: true

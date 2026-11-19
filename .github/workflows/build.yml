@@ -1,0 +1,115 @@
+# Push to main -> build + push one image per service to GHCR (tag = commit SHA)
+# -> commit the new tag into deploy/values/<service>.yaml -> Argo CD syncs it.
+name: build
+
+on:
+  push:
+    branches: [main]
+    # The bump job only changes deploy/values/, so its commit never starts this
+    # workflow again (1st loop guard).
+    paths-ignore:
+      - "deploy/values/**"
+      - "docs/**"
+      - "**/*.md"
+  workflow_dispatch: {}
+
+env:
+  REGISTRY: ghcr.io
+  # Single list of deployable services. Add a service here + deploy/values/<name>.yaml.
+  SERVICES: '["user-service"]'
+
+# Default: read-only token. Jobs ask for more only where needed.
+permissions:
+  contents: read
+
+jobs:
+  # Exposes SERVICES as a job output so the matrix and the bump job use the same list.
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ env.SERVICES }}
+    steps:
+      - run: echo "Building services $SERVICES"
+
+  build:
+    needs: plan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write          # push to GHCR with GITHUB_TOKEN
+    strategy:
+      fail-fast: true
+      matrix:
+        service: ${{ fromJSON(needs.plan.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # GHCR image names must be lowercase (org is "M7011E-CS2")
+      - name: Image name
+        id: image
+        run: echo "name=${REGISTRY}/${GITHUB_REPOSITORY_OWNER,,}/${{ matrix.service }}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          build-args: SERVICE=${{ matrix.service }}
+          push: true
+          tags: ${{ steps.image.outputs.name }}:${{ github.sha }}
+          # Links the package to this repo in GHCR
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          # Reuse layers between runs, one cache per service
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  bump-tags:
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write          # commit to main
+    # Run one bump at a time so two pushes cannot race on the same files
+    concurrency:
+      group: bump-image-tags
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Write new tag into values files
+        env:
+          SERVICES: ${{ needs.plan.outputs.services }}
+          TAG: ${{ github.sha }}
+        run: |
+          for service in $(echo "$SERVICES" | jq -r '.[]'); do
+            file="deploy/values/${service}.yaml"
+            test -f "$file" || { echo "::error::$file is missing"; exit 1; }
+            yq -i '.image.tag = strenv(TAG)' "$file"
+            echo "$file -> $TAG"
+          done
+
+      - name: Commit and push
+        env:
+          TAG: ${{ github.sha }}
+        run: |
+          if git diff --quiet; then
+            echo "Tags already up to date"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deploy/values
+          # [skip ci] + pushing with GITHUB_TOKEN (which never triggers new
+          # workflow runs) are the 2nd and 3rd loop guards.
+          git commit -m "deploy: image tag ${TAG::7} [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main

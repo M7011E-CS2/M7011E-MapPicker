@@ -23,6 +23,17 @@ describe('AppController (e2e)', () => {
       .expect('Hello World!');
   });
 
+  it('/health (GET) returns 200 without a token', () => {
+    return request(app.getHttpServer())
+      .get('/health')
+      .expect(200)
+      .expect({ status: 'ok' });
+  });
+
+  it('unknown route returns 404', () => {
+    return request(app.getHttpServer()).get('/does-not-exist').expect(404);
+  });
+
   afterEach(async () => {
     await app.close();
   });

@@ -1,0 +1,15 @@
+# Build context is the repo root (pnpm monorepo), so keep it small and secret-free.
+**/node_modules
+**/dist
+**/coverage
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+.git
+.github
+.vscode
+.idea
+**/.DS_Store
+docs
+load-tests
+deploy

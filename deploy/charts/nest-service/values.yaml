@@ -1,0 +1,74 @@
+# Defaults shared by every service.
+# Each service overrides only what differs in deploy/values/<service>.yaml.
+
+replicaCount: 1
+
+image:
+  repository: ""          # required, e.g. ghcr.io/m7011e-cs2/user-service
+  tag: ""                 # required; CI writes the commit SHA here
+  pullPolicy: IfNotPresent
+
+# e.g. [{ name: ghcr-pull }] when the GHCR package is private
+imagePullSecrets: []
+
+# Port the app listens on. Passed to the app as PORT.
+containerPort: 3000
+
+# Plain, non-secret config -> env vars.  KEY: value
+env: {}
+
+# Env vars read from Kubernetes Secrets (created by hand, never in git).
+#   ENV_VAR_NAME: { secretName: <secret>, key: <key in secret> }
+secretEnv: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: traefik
+  host: "cs2.group-3-m7011e-ltu.se"                # e.g. mappick.example.com
+  path: ""                # e.g. /api/users
+  # Traefik removes the path prefix before forwarding, so the app still
+  # serves its routes at "/" (e.g. /api/users/health -> /health).
+  stripPrefix: true
+  tls:
+    enabled: true
+    clusterIssuer: letsencrypt-prod   # cert-manager ClusterIssuer
+    secretName: ""                    # defaults to <release>-tls
+
+probes:
+  path: /health
+  liveness:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 3
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 3
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# uid/gid 1000 = the "node" user in our Dockerfile
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]

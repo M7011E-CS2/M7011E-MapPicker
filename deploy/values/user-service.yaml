@@ -1,0 +1,19 @@
+# user-service values for the generic chart deploy/charts/nest-service.
+# image.tag is updated automatically by .github/workflows/build.yml — do not edit by hand.
+# (No blank lines: yq rewrites the file on each bump and would remove them.)
+image:
+  repository: ghcr.io/m7011e-cs2/user-service
+  tag: "initial"
+# Pull credentials for GHCR (remove if the package is made public)
+imagePullSecrets:
+  - name: ghcr-pull
+env:
+  NODE_ENV: production
+secretEnv:
+  DATABASE_URL:
+    secretName: user-service-db
+    key: DATABASE_URL
+ingress:
+  enabled: true
+  host: mappick.example.com # TODO: replace with the real domain
+  path: /api/users
