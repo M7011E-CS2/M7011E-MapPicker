@@ -9,3 +9,7 @@ env:
 ingress:
   enabled: true
   path: /api/users
+secretEnv:
+  DATABASE_URL:
+    secretName: user-service-db
+    key: DATABASE_URL

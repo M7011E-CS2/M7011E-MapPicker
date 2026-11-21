@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { userServiceHelloQuery } from '../api/users'
+import { listUsersQuery } from '../api/users'
 
 type Status = 'checking' | 'online' | 'offline'
 
@@ -10,9 +10,9 @@ const badgeStyles: Record<Status, string> = {
   offline: 'bg-danger/10 text-danger',
 }
 
-// Shows the response from the user-service, to check that frontend → ingress → service works.
+// Lists the users stored by the user-service (frontend → ingress → service → Postgres).
 export function UserServiceStatus() {
-  const { data, error, isPending, isFetching, refetch } = useQuery(userServiceHelloQuery())
+  const { data, error, isPending, isFetching, refetch } = useQuery(listUsersQuery())
 
   const status: Status = isPending ? 'checking' : error ? 'offline' : 'online'
 
@@ -34,8 +34,19 @@ export function UserServiceStatus() {
           {error.message}
         </p>
       )}
-      {/* Rendered as text, never as HTML (XSS). */}
-      {data !== undefined && <p className="mb-5 font-mono text-xl font-semibold break-words">{data}</p>}
+      {data !== undefined &&
+        (data.length === 0 ? (
+          <p className="mb-5 text-muted">No users yet.</p>
+        ) : (
+          <ul className="mb-5 divide-y divide-border">
+            {data.map((user) => (
+              // Rendered as text, never as HTML (XSS).
+              <li key={user.id} className="py-2 font-semibold break-words">
+                {user.username}
+              </li>
+            ))}
+          </ul>
+        ))}
 
       <button
         type="button"
