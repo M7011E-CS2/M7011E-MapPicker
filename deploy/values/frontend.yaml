@@ -1,2 +1,13 @@
+# frontend values for the generic chart deploy/charts/nest-service.
+# image.tag is updated automatically by .github/workflows/build.yml — do not edit by hand.
+# (No blank lines: yq rewrites the file on each bump and would remove them.)
 image:
-  tag: 0c6cdc1c6a26ba282021b5799a0d502fc63354db
+  repository: ghcr.io/m7011e-cs2/frontend
+  tag: "<keep the existing value>"
+containerPort: 8080
+probes:
+  path: /
+ingress:
+  enabled: true
+  path: /
+  stripPrefix: false
