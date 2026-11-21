@@ -16,7 +16,7 @@ on:
 env:
   REGISTRY: ghcr.io
   # Single list of deployable services. Add a service here + deploy/values/<name>.yaml.
-  SERVICES: '["user-service"]'
+  SERVICES: '["user-service", "frontend"]'
 
 # Default: read-only token. Jobs ask for more only where needed.
 permissions:
@@ -57,10 +57,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Dockerfile
+        id: df
+        run: |
+          f="apps/${{ matrix.service }}/Dockerfile"
+          [ -f "$f" ] || f=Dockerfile
+          echo "file=$f" >> "$GITHUB_OUTPUT"
+
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile
+          file: ${{ steps.df.outputs.file }}
           build-args: SERVICE=${{ matrix.service }}
           push: true
           tags: ${{ steps.image.outputs.name }}:${{ github.sha }}
