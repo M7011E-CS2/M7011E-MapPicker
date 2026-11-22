@@ -3,7 +3,7 @@
 # (No blank lines: yq rewrites the file on each bump and would remove them.)
 image:
   repository: ghcr.io/m7011e-cs2/user-service
-  tag: "32d8d6b8b98411b1ddfee9fdcce6be9eb87dc2b5"
+  tag: "eeb7b5f0867f5e08feb21687d67e57805f3dab5f"
 env:
   NODE_ENV: production
 ingress:
