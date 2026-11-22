@@ -73,6 +73,15 @@ spec:
         fsGroup: 999
         seccompProfile:
           type: RuntimeDefault
+        # WORKAROUND: on our node (Ubuntu 26.04, kernel 7.0) containerd's default
+        # AppArmor profile blocks signals between processes in the SAME container
+        # (`kill` -> "Permission denied", even as root). Postgres needs those
+        # signals internally (checkpoints, shutdown), so it crash-loops with
+        # "could not signal for checkpoint: Permission denied".
+        # Only this pod is unconfined; non-root, seccomp and dropped capabilities
+        # still apply. Remove once the node's containerd/AppArmor is fixed.
+        appArmorProfile:
+          type: Unconfined
       containers:
         - name: postgres
           image: postgres:17   # same major version as local/docker-compose.yml
