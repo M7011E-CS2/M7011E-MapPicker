@@ -96,16 +96,26 @@ spec:
             # which initdb refuses to use.
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
+          # Startup: first boot (initdb) and crash recovery can take minutes on a
+          # slow disk. Liveness/readiness only start once this succeeds, so
+          # Kubernetes does not kill Postgres mid-recovery (which would leave it
+          # unclean again and cause an endless restart loop).
+          # Allows up to 30 x 10s = 5 minutes.
+          startupProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            periodSeconds: 10
+            failureThreshold: 30
           readinessProbe:
             exec:
               command: ["pg_isready", "-U", "postgres"]
-            initialDelaySeconds: 5
             periodSeconds: 5
           livenessProbe:
             exec:
               command: ["pg_isready", "-U", "postgres"]
-            initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           resources:
             requests:
               cpu: 100m
