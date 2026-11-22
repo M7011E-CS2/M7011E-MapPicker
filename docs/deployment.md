@@ -48,11 +48,18 @@ keeps the values out of your shell history.
 # 0. Namespace (Argo CD would also create it, but secrets must exist first)
 kubectl create namespace mappick
 
-# 1. Database connection for user-service
-read -rs DATABASE_URL   # paste e.g. postgres://user_service:<password>@<host>:5432/user_service
+# 1. Postgres (deploy/infra/postgres.yaml). Two different passwords:
+#    the superuser's, and user-service's own login (least privilege).
+#    Use URL-safe passwords (e.g. `openssl rand -hex 24`), they go into a URL.
+read -rs PG_ADMIN_PW
+kubectl -n mappick create secret generic postgres-admin \
+  --from-literal=password="$PG_ADMIN_PW"
+
+read -rs USER_SERVICE_PW
 kubectl -n mappick create secret generic user-service-db \
-  --from-literal=DATABASE_URL="$DATABASE_URL"
-unset DATABASE_URL
+  --from-literal=password="$USER_SERVICE_PW" \
+  --from-literal=DATABASE_URL="postgres://user_service:${USER_SERVICE_PW}@postgres.mappick.svc.cluster.local:5432/user_service"
+unset PG_ADMIN_PW USER_SERVICE_PW
 
 # 2. Pull secret for GHCR (only needed while the packages are private).
 #    Token: GitHub → Settings → Developer settings → PAT (classic) with only read:packages
@@ -74,6 +81,12 @@ kubectl -n argocd create secret generic mappick-repo \
 kubectl -n argocd label secret mappick-repo argocd.argoproj.io/secret-type=repository
 unset REPO_TOKEN
 ```
+
+The `user_service` database and user are created automatically by the init
+script in `deploy/infra/postgres.yaml` the **first** time Postgres starts. That
+script never runs again, so changing the password later means also running
+`ALTER USER user_service WITH PASSWORD '...'` via
+`kubectl -n mappick exec -it postgres-0 -- psql -U postgres`.
 
 To change a secret: `kubectl -n mappick delete secret <name>`, create it again,
 then `kubectl -n mappick rollout restart deployment/<service>` (pods only read
