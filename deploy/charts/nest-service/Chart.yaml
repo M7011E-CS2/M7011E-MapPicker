@@ -1,6 +1,0 @@
-apiVersion: v2
-name: nest-service
-description: Generic chart for every MapPick NestJS microservice. Per-service settings live in deploy/values/<service>.yaml.
-type: application
-version: 0.1.0
-appVersion: "0.1.0"

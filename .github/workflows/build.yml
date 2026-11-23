@@ -1,20 +1,20 @@
-# Push to main -> build + push one image per service to GHCR (tag = commit SHA)
-# -> commit the new tag into deploy/values/<service>.yaml -> Argo CD syncs it.
+#     commit the new tag into values/<service>.yaml in the GitOps repo
+#    (M7011E-CS2/M7011E-GitOps) -> Argo CD syncs it.
+# This repo is never committed to by CI, so pushes here are never rejected
+# because of a bot commit.
 name: build
 
 on:
   push:
     branches: [main]
-    # The bump job only changes deploy/values/, so its commit never starts this
-    # workflow again (1st loop guard).
     paths-ignore:
-      - "deploy/values/**"
       - "docs/**"
       - "**/*.md"
   workflow_dispatch: {}
 
 env:
   REGISTRY: ghcr.io
+  GITOPS_REPO: M7011E-CS2/M7011E-GitOps
   # Single list of deployable services. Add a service here + deploy/values/<name>.yaml.
   SERVICES: '["user-service", "frontend"]'
 
@@ -89,9 +89,13 @@ jobs:
       group: bump-image-tags
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out the GitOps repo
+        uses: actions/checkout@v4
         with:
+          repository: ${{ env.GITOPS_REPO }}
           ref: main
+          # Private half of a deploy key with write access on the GitOps repo
+          ssh-key: ${{ secrets.GITOPS_DEPLOY_KEY }}
 
       - name: Write new tag into values files
         env:
@@ -99,8 +103,8 @@ jobs:
           TAG: ${{ github.sha }}
         run: |
           for service in $(echo "$SERVICES" | jq -r '.[]'); do
-            file="deploy/values/${service}.yaml"
-            test -f "$file" || { echo "::error::$file is missing"; exit 1; }
+            file="values/${service}.yaml"
+            test -f "$file" || { echo "::error::$file is missing in $GITOPS_REPO"; exit 1; }
             yq -i '.image.tag = strenv(TAG)' "$file"
             echo "$file -> $TAG"
           done
@@ -114,9 +118,8 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add deploy/values
-          # [skip ci] + pushing with GITHUB_TOKEN (which never triggers new
-          # workflow runs) are the 2nd and 3rd loop guards.
-          git commit -m "deploy: image tag ${TAG::7} [skip ci]"
+          git add values
+          git commit -m "deploy: image tag ${TAG::7}" \
+                    -m "Source: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${TAG}"
           git pull --rebase origin main
           git push origin HEAD:main

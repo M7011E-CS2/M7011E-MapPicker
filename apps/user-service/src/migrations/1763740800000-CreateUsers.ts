@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 /**
- * Creates the users table. Hand-written so the exact SQL is visible.
+ * Creates the users table. 
  * TypeORM records applied migrations in the `migrations` table, so this runs only once.
  */
 export class CreateUsers1763740800000 implements MigrationInterface {
