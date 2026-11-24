@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { User } from './user.entity.js';
 import { UsersService } from './users.service.js';
@@ -27,5 +27,11 @@ export class UsersController {
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateUserDto): Promise<User> {
     return this.usersService.create(dto);
+  }
+
+  @Delete()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    return this.usersService.remove(id);
   }
 }

@@ -1,8 +1,12 @@
+import { randomUUID } from 'node:crypto';                                       // NEW
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';                    // NEW
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { EXCHANGE, Events, type UserDeletedEvent } from 'contracts';            // NEW
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto.js';
 import { User } from './user.entity.js';
+
 
 @Injectable()
 export class UsersService {
@@ -27,4 +31,18 @@ export class UsersService {
     }
     return this.users.save(this.users.create(dto));
   }
+
+  async remove(id: string): Promise<void> {
+  const result = await this.users.delete({ id });
+  if (!result.affected) {
+    throw new NotFoundException(`User ${id} not found`);   // → 404, nothing published
+  }
+
+  const event: UserDeletedEvent = {
+    eventId: randomUUID(),
+    occurredAt: new Date().toISOString(),
+    userId: id,
+  };
+  await this.amqp.publish(EXCHANGE, Events.UserDeleted, event, { persistent: true });
+}
 }

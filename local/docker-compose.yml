@@ -17,6 +17,16 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+  rabbitmq:
+    image: rabbitmq:4-management
+    ports:
+      - '5672:5672'   # AMQP, what the services connect to
+      - '15672:15672' # dashboard: http://localhost:15672
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
 
 volumes:
   postgres-data:
+  rabbitmq-data:
